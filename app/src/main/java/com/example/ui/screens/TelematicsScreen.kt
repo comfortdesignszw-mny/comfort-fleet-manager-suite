@@ -18,8 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.Vehicle
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.example.viewmodel.FleetViewModel
 import com.example.ui.components.neonInteractedGlow
+import com.example.ui.components.drawScrollbar
 import com.example.ui.components.TelemetryTrendChart
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,9 +51,13 @@ fun TelematicsScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
                 Text("No vehicles found.", style = MaterialTheme.typography.bodyLarge)
             }
         } else {
+            val listState = rememberLazyListState()
             LazyColumn(
+                state = listState,
                 contentPadding = paddingValues,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawScrollbar(listState),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }

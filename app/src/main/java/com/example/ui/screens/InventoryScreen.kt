@@ -32,9 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.example.data.Vehicle
 import com.example.viewmodel.FleetViewModel
 import com.example.ui.components.neonInteractedGlow
+import com.example.ui.components.drawScrollbar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -193,9 +195,13 @@ fun InventoryScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
                 Text("No vehicles in inventory.", style = MaterialTheme.typography.bodyLarge)
             }
         } else {
+            val listState = rememberLazyListState()
             LazyColumn(
+                state = listState,
                 contentPadding = paddingValues,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawScrollbar(listState),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -603,7 +609,13 @@ fun ServiceHistoryDialog(vehicle: Vehicle, viewModel: FleetViewModel, onDismiss:
                 if (records.isEmpty()) {
                     Text("No service records found.", style = MaterialTheme.typography.bodyMedium)
                 } else {
-                    LazyColumn {
+                    val serviceListState = rememberLazyListState()
+                    LazyColumn(
+                        state = serviceListState,
+                        modifier = Modifier
+                            .heightIn(max = 280.dp)
+                            .drawScrollbar(serviceListState)
+                    ) {
                         items(records) { record ->
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),

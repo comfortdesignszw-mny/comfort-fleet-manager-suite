@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,14 +19,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.example.data.TripLog
 import com.example.viewmodel.FleetViewModel
 import com.example.ui.components.neonInteractedGlow
+import com.example.ui.components.drawScrollbar
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -211,8 +217,10 @@ fun TripLogsScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
                     trip.driverName.contains(searchQuery, ignoreCase = true) || vName.contains(searchQuery, ignoreCase = true)
                 }.sortedByDescending { it.timeOut }
 
+                val mainListState = rememberLazyListState()
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    state = mainListState,
+                    modifier = Modifier.fillMaxSize().drawScrollbar(mainListState),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item { Spacer(modifier = Modifier.height(0.dp)) }
@@ -418,35 +426,86 @@ fun ManualTripLogDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onLog:
     var mileageIn by remember { mutableStateOf("") }
     var fuelOut by remember { mutableStateOf("Full") }
     var fuelIn by remember { mutableStateOf("Full") }
+    
+    var vehicleSearchQuery by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Log Completed Trip") },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            val formScrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawScrollbar(formScrollState)
+                    .verticalScroll(formScrollState)
+            ) {
                 if (vehicles.isEmpty()) {
                     Text("No vehicles available in inventory.", color = MaterialTheme.colorScheme.error)
                 } else {
                     Text("Select Vehicle:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    FlowRow(
+                    OutlinedTextField(
+                        value = vehicleSearchQuery,
+                        onValueChange = { vehicleSearchQuery = it },
+                        label = { Text("Search Vehicle (Brand, Model, Reg No)...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    
+                    val filteredVehicles = vehicles.filter { v ->
+                        "${v.brand} ${v.model} ${v.registrationNumber}".contains(vehicleSearchQuery, ignoreCase = true)
+                    }
+                    
+                    val pickerListState = rememberLazyListState()
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .height(130.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), shape = MaterialTheme.shapes.small)
+                            .padding(4.dp)
                     ) {
-                        vehicles.forEach { v ->
-                            val isSelected = selectedVehicleId == v.id
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedVehicleId = v.id },
-                                label = { Text("${v.brand} ${v.model}") }
-                            )
+                        if (filteredVehicles.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("No matching vehicles", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        } else {
+                            LazyColumn(
+                                state = pickerListState,
+                                modifier = Modifier.fillMaxSize().drawScrollbar(pickerListState),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(filteredVehicles) { v ->
+                                    val isSelected = selectedVehicleId == v.id
+                                    Surface(
+                                        onClick = { selectedVehicleId = v.id },
+                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                        shape = MaterialTheme.shapes.small,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = isSelected,
+                                                onClick = { selectedVehicleId = v.id }
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Column {
+                                                Text("${v.brand} ${v.model}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                                Text("Reg: ${v.registrationNumber} | Odo: ${v.currentMileage.toInt()} km", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(value = driver, onValueChange = { driver = it }, label = { Text("Driver Name") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = dest, onValueChange = { dest = it }, label = { Text("Destination") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text("Trip Purpose / Reason") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -454,7 +513,7 @@ fun ManualTripLogDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onLog:
                     val currentVeh = vehicles.find { it.id == selectedVehicleId }
                     val defaultMileage = currentVeh?.currentMileage?.toInt()?.toString() ?: ""
                     LaunchedEffect(selectedVehicleId) {
-                        if (mileageOut.isBlank() && defaultMileage.isNotBlank()) {
+                        if (defaultMileage.isNotBlank()) {
                             mileageOut = defaultMileage
                         }
                     }
@@ -501,35 +560,86 @@ fun DispatchDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onDispatch:
     var reason by remember { mutableStateOf("") }
     var mileage by remember { mutableStateOf("") }
     var fuel by remember { mutableStateOf("Full") }
+    
+    var vehicleSearchQuery by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Dispatch Vehicle") },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            val formScrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawScrollbar(formScrollState)
+                    .verticalScroll(formScrollState)
+            ) {
                 if (availableVehicles.isEmpty()) {
                     Text("No parked vehicles available in inventory.", color = MaterialTheme.colorScheme.error)
                 } else {
                     Text("Select Available Vehicle:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    FlowRow(
+                    OutlinedTextField(
+                        value = vehicleSearchQuery,
+                        onValueChange = { vehicleSearchQuery = it },
+                        label = { Text("Search Active Inventory...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    
+                    val filteredVehicles = availableVehicles.filter { v ->
+                        "${v.brand} ${v.model} ${v.registrationNumber}".contains(vehicleSearchQuery, ignoreCase = true)
+                    }
+                    
+                    val pickerListState = rememberLazyListState()
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .height(130.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), shape = MaterialTheme.shapes.small)
+                            .padding(4.dp)
                     ) {
-                        availableVehicles.forEach { v ->
-                            val isSelected = selectedVehicleId == v.id
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedVehicleId = v.id },
-                                label = { Text("${v.brand} ${v.model} (${v.registrationNumber})") }
-                            )
+                        if (filteredVehicles.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("No matching available vehicles", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        } else {
+                            LazyColumn(
+                                state = pickerListState,
+                                modifier = Modifier.fillMaxSize().drawScrollbar(pickerListState),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(filteredVehicles) { v ->
+                                    val isSelected = selectedVehicleId == v.id
+                                    Surface(
+                                        onClick = { selectedVehicleId = v.id },
+                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                        shape = MaterialTheme.shapes.small,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = isSelected,
+                                                onClick = { selectedVehicleId = v.id }
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Column {
+                                                Text("${v.brand} ${v.model}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                                Text("Reg: ${v.registrationNumber} | Odo: ${v.currentMileage.toInt()} km", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(value = driver, onValueChange = { driver = it }, label = { Text("Driver Name") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(value = dest, onValueChange = { dest = it }, label = { Text("Destination") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text("Trip Purpose / Reason") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -537,7 +647,7 @@ fun DispatchDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onDispatch:
                     val currentVeh = availableVehicles.find { it.id == selectedVehicleId }
                     val defaultMileage = currentVeh?.currentMileage?.toInt()?.toString() ?: ""
                     LaunchedEffect(selectedVehicleId) {
-                        if (mileage.isBlank() && defaultMileage.isNotBlank()) {
+                        if (defaultMileage.isNotBlank()) {
                             mileage = defaultMileage
                         }
                     }

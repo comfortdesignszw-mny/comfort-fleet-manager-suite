@@ -2,8 +2,10 @@ package com.example.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -16,12 +18,65 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.data.TelemetryHistory
+
+fun Modifier.drawScrollbar(
+    scrollState: ScrollState,
+    color: Color = Color(0xFF00E5FF).copy(alpha = 0.6f)
+): Modifier = this.drawBehind {
+    val viewportHeight = size.height
+    val maxValue = scrollState.maxValue.toFloat()
+    val totalHeight = maxValue + viewportHeight
+    if (totalHeight > viewportHeight) {
+        val scrollFraction = scrollState.value.toFloat() / totalHeight
+        val visibleFraction = viewportHeight / totalHeight
+        
+        val scrollbarHeight = (viewportHeight * visibleFraction).coerceAtLeast(24.dp.toPx())
+        val scrollbarY = (viewportHeight - scrollbarHeight) * (scrollState.value.toFloat() / maxValue.coerceAtLeast(1f))
+        
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(size.width - 6.dp.toPx(), scrollbarY),
+            size = Size(4.dp.toPx(), scrollbarHeight),
+            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        )
+    }
+}
+
+fun Modifier.drawScrollbar(
+    lazyListState: LazyListState,
+    color: Color = Color(0xFF00E5FF).copy(alpha = 0.6f)
+): Modifier = this.drawBehind {
+    val layoutInfo = lazyListState.layoutInfo
+    val visibleItems = layoutInfo.visibleItemsInfo
+    val totalItemsCount = layoutInfo.totalItemsCount
+    
+    if (visibleItems.isNotEmpty() && totalItemsCount > visibleItems.size) {
+        val firstVisibleItem = visibleItems.first()
+        val totalEstimatedHeight = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset) * (totalItemsCount.toFloat() / visibleItems.size)
+        val viewportHeight = size.height
+        
+        val scrollFraction = firstVisibleItem.index.toFloat() / totalItemsCount
+        val visibleFraction = visibleItems.size.toFloat() / totalItemsCount
+        
+        val scrollbarHeight = (viewportHeight * visibleFraction).coerceAtLeast(24.dp.toPx())
+        val scrollbarY = (viewportHeight - scrollbarHeight) * (firstVisibleItem.index.toFloat() / (totalItemsCount - visibleItems.size).coerceAtLeast(1).toFloat())
+        
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(size.width - 6.dp.toPx(), scrollbarY),
+            size = Size(4.dp.toPx(), scrollbarHeight),
+            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+        )
+    }
+}
 
 @Composable
 fun Modifier.neonInteractedGlow(
