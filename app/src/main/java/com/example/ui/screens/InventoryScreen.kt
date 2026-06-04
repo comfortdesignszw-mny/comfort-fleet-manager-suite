@@ -18,6 +18,10 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.TableChart
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +40,7 @@ import com.example.ui.components.neonInteractedGlow
 @Composable
 fun InventoryScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
     val vehicles by viewModel.vehicles.collectAsStateWithLifecycle()
+    val companyProfile by viewModel.companyProfile.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
     var editVehicleTarget by remember { mutableStateOf<Vehicle?>(null) }
     var serviceHistoryTarget by remember { mutableStateOf<Vehicle?>(null) }
@@ -53,9 +58,44 @@ fun InventoryScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
                     val context = LocalContext.current
                     IconButton(onClick = {
                         val reportHtml = """
-                            <html><body>
+                            <html>
+                            <head>
+                            <style>
+                                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 24px; color: #0A1E3F; background-color: #FFFFFF; }
+                                .brand-banner { background-color: #0A1E3F; color: #FFFFFF; padding: 24px; border-radius: 12px; margin-bottom: 24px; border-left: 6px solid #00E5FF; }
+                                .brand-title { color: #00E5FF; margin: 0 0 12px 0; font-size: 26px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+                                .brand-grid { display: table; width: 100%; margin-top: 10px; }
+                                .brand-col { display: table-cell; width: 50%; vertical-align: top; font-size: 13px; line-height: 1.5; color: #E0F7FA; }
+                                .brand-col strong { color: #00E5FF; font-size: 14px; }
+                                h2 { font-size: 20px; color: #0A1E3F; border-bottom: 2.5px solid #00E5FF; padding-bottom: 8px; margin-top: 30px; }
+                                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                                th { background-color: #0A1E3F; color: #00E5FF; padding: 12px 10px; text-align: left; font-size: 13px; font-weight: bold; border-bottom: 3px solid #00E5FF; }
+                                td { padding: 10px; border-bottom: 1.5px solid #E2E8F0; font-size: 12.5px; color: #334155; }
+                                tr:nth-child(even) { background-color: #F8FAFC; }
+                            </style>
+                            </head>
+                            <body>
+                            
+                            <div class="brand-banner">
+                                <div class="brand-title">${if (companyProfile.companyName.isNotBlank()) companyProfile.companyName else "Comfort Fleet Suite"}</div>
+                                <div class="brand-grid">
+                                    <div class="brand-col">
+                                        <strong>Company details:</strong><br/>
+                                        Reg No: ${if (companyProfile.companyNumber.isNotBlank()) companyProfile.companyNumber else "N/A"}<br/>
+                                        Email: ${if (companyProfile.companyEmail.isNotBlank()) companyProfile.companyEmail else "N/A"}<br/>
+                                        Address: ${if (companyProfile.companyAddress.isNotBlank()) companyProfile.companyAddress else "N/A"}
+                                    </div>
+                                    <div class="brand-col" style="text-align: right;">
+                                        <strong>The User Details:</strong><br/>
+                                        Full Name: ${if (companyProfile.contactName.isNotBlank()) companyProfile.contactName else "N/A"}<br/>
+                                        Phone No: ${if (companyProfile.contactNumber.isNotBlank()) companyProfile.contactNumber else "N/A"}<br/>
+                                        Email: ${if (companyProfile.contactEmail.isNotBlank()) companyProfile.contactEmail else "N/A"}
+                                    </div>
+                                </div>
+                            </div>
+
                             <h2>Vehicle Inventory Report</h2>
-                            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                            <table>
                             <tr><th>Brand & Model</th><th>Registration</th><th>Type</th><th>Condition</th><th>Mileage</th><th>Status</th></tr>
                             ${vehicles.joinToString("") { v ->
                                 "<tr>" +
@@ -63,7 +103,7 @@ fun InventoryScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
                                 "<td>${v.registrationNumber}</td>" +
                                 "<td>${v.type}</td>" +
                                 "<td>${v.condition}</td>" +
-                                "<td>${String.format("%.1f", v.currentMileage)} km</td>" +
+                                "<td>${String.format(Locale.getDefault(), "%.1f", v.currentMileage)} km</td>" +
                                 "<td>${v.status}</td>" +
                                 "</tr>"
                             }}
@@ -82,6 +122,58 @@ fun InventoryScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
                         }
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "Export Inventory to PDF")
+                    }
+                    IconButton(onClick = {
+                        val csvHeader = """
+                            # --------------------------------------------------
+                            # AUTHORIZED FLEET EXPORT REPORT (CSV)
+                            # Company Name: ${if (companyProfile.companyName.isNotBlank()) companyProfile.companyName else "Comfort Fleet Suite"}
+                            # Registration ID: ${if (companyProfile.companyNumber.isNotBlank()) companyProfile.companyNumber else "N/A"}
+                            # Company Email: ${if (companyProfile.companyEmail.isNotBlank()) companyProfile.companyEmail else "N/A"}
+                            # Fleet Administrator: ${if (companyProfile.contactName.isNotBlank()) companyProfile.contactName else "N/A"} (${if (companyProfile.contactEmail.isNotBlank()) companyProfile.contactEmail else "N/A"})
+                            # Generated On: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}
+                            # --------------------------------------------------
+                            
+                        """.trimIndent()
+                        
+                        val csvRows = vehicles.joinToString("\n") { v ->
+                            val brandModel = "${v.brand} ${v.model}".replace("\"", "\"\"")
+                            val regNo = v.registrationNumber.replace("\"", "\"\"")
+                            val currentMileageStr = String.format(Locale.getDefault(), "%.1f km", v.currentMileage)
+                            "\"$brandModel\",\"$regNo\",\"${v.type}\",\"${v.condition}\",\"$currentMileageStr\",\"${v.status}\""
+                        }
+                        
+                        val totalCsv = csvHeader + "Brand & Model,Registration,Type,Condition,Mileage,Status\n" + csvRows
+                        
+                        // Share CSV File
+                        try {
+                            val file = java.io.File(context.cacheDir, "Vehicle_Inventory_Report.csv")
+                            file.writeText(totalCsv)
+                            
+                            val uri: android.net.Uri = androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "com.aistudio.comfortfleet.xjz8e.fileprovider",
+                                file
+                            )
+                            
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/csv"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, "Vehicle Inventory Report")
+                                putExtra(android.content.Intent.EXTRA_TEXT, "Completely Branded Fleet Vehicle Inventory CSV sheet")
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share CSV Report"))
+                        } catch (e: Exception) {
+                            // Fallback
+                            val textIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, totalCsv)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(textIntent, "Share CSV Plain Text"))
+                        }
+                    }) {
+                        Icon(Icons.Filled.TableChart, contentDescription = "Export Inventory to CSV")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
