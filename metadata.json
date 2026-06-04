@@ -1,0 +1,6 @@
+{
+  "name": "Comfort Fleet",
+  "description": "Comfort Fleet Manager Suite for tracking vehicles and trips.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
