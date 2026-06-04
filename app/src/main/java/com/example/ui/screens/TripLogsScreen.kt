@@ -455,6 +455,7 @@ fun DispatchDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onDispatch:
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), 
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                     )
+                    OutlinedTextField(value = fuel, onValueChange = { fuel = it }, label = { Text("Fuel Out (Start)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 }
             }
         },
