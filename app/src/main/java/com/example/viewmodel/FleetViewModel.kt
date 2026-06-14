@@ -92,7 +92,7 @@ class FleetViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Trip Operations ---
 
-    fun dispatchVehicle(vehicleId: Int, driverName: String, destination: String, reason: String, mileageOut: Int, fuelOut: String) {
+    fun dispatchVehicle(vehicleId: String, driverName: String, destination: String, reason: String, mileageOut: Int, fuelOut: String) {
         viewModelScope.launch {
             val trip = TripLog(
                 vehicleId = vehicleId,
@@ -145,7 +145,7 @@ class FleetViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun logCompletedTrip(vehicleId: Int, driverName: String, destination: String, reason: String, mileageOut: Int, mileageIn: Int, fuelOut: String, fuelIn: String) {
+    fun logCompletedTrip(vehicleId: String, driverName: String, destination: String, reason: String, mileageOut: Int, mileageIn: Int, fuelOut: String, fuelIn: String) {
         viewModelScope.launch {
             val trip = TripLog(
                 vehicleId = vehicleId,
@@ -172,16 +172,16 @@ class FleetViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun getTelemetryHistory(vehicleId: Int): kotlinx.coroutines.flow.Flow<List<com.example.data.TelemetryHistory>> {
+    fun getTelemetryHistory(vehicleId: String): kotlinx.coroutines.flow.Flow<List<com.example.data.TelemetryHistory>> {
         return repository.getTelemetryHistory(vehicleId)
     }
 
     // --- Service Records ---
-    fun getServiceRecords(vehicleId: Int): kotlinx.coroutines.flow.Flow<List<com.example.data.ServiceRecord>> {
+    fun getServiceRecords(vehicleId: String): kotlinx.coroutines.flow.Flow<List<com.example.data.ServiceRecord>> {
         return repository.getServiceRecordsForVehicle(vehicleId)
     }
 
-    fun addServiceRecord(vehicleId: Int, cost: Double, notes: String) {
+    fun addServiceRecord(vehicleId: String, cost: Double, notes: String) {
         viewModelScope.launch {
             val record = com.example.data.ServiceRecord(
                 vehicleId = vehicleId,
@@ -195,7 +195,80 @@ class FleetViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Profile Operations ---
+    // --- Sync Operations ---
+    fun syncExportJSON(): String {
+        val moshi = com.squareup.moshi.Moshi.Builder()
+            .addLast(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
+            .build()
+        val adapter = moshi.adapter(com.example.data.FleetExport::class.java)
+
+        // Run synchronously to get result for export.
+        // We can use a runBlocking for the dao if needed, OR we can use the stateFlows.
+        // using state flows is easier and instant.
+        val currentVehicles = vehicles.value
+        val currentTripLogs = tripLogs.value
+        
+        val exportData = com.example.data.FleetExport(
+            vehicles = currentVehicles,
+            tripLogs = currentTripLogs,
+            telemetryHistory = emptyList(), // telemetry might be too big, skipped for now to save space
+            serviceRecords = emptyList() // could also be exported
+        )
+        return adapter.toJson(exportData)
+    }
+
+    suspend fun syncImportJSON(jsonText: String): Boolean {
+        return try {
+            val moshi = com.squareup.moshi.Moshi.Builder()
+                .addLast(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
+                .build()
+            val adapter = moshi.adapter(com.example.data.FleetExport::class.java)
+
+            val importedData = adapter.fromJson(jsonText) ?: return false
+
+            // Smart Merge Logic:
+            importedData.vehicles.forEach { incoming ->
+                val existing = repository.getVehicleById(incoming.id)
+                if (existing == null) {
+                    repository.insertVehicle(incoming)
+                } else if (incoming.updatedAt > existing.updatedAt) {
+                    repository.updateVehicle(incoming)
+                }
+            }
+
+            // Sync TripLogs similarly using a custom getAll in repository if needed, but we can just do:
+            // For trips, let's add getTripById in Dao.
+            // Oh right, we don't have getTripById yet, let's just REPLACE for now or loop all.
+            val currentTrips = tripLogs.value
+            importedData.tripLogs.forEach { incoming ->
+                val existing = currentTrips.find { it.id == incoming.id }
+                if (existing == null) {
+                    repository.insertTripLog(incoming)
+                } else if (incoming.updatedAt > existing.updatedAt) {
+                    repository.updateTripLog(incoming)
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    fun syncExportCSV(): String {
+        val currentTrips = tripLogs.value
+        val sb = java.lang.StringBuilder()
+        sb.append("Trip ID,Vehicle ID,Driver Name,Dispatcher ID,Destination,Reason,Mileage Out,Mileage In,Fuel Out,Fuel In,Date Logged\n")
+        
+        currentTrips.forEach { trip ->
+            val miIn = trip.mileageIn?.toString() ?: ""
+            val fIn = trip.fuelIn ?: ""
+            sb.append("\${trip.id},\${trip.vehicleId},\${trip.driverName},\${trip.dispatcherId},\${trip.destination},\${trip.tripReason},\${trip.mileageOut},\${miIn},\${trip.fuelOut},\${fIn},\${trip.createdAt}\n")
+        }
+        return sb.toString()
+    }
+
     private fun loadProfile(): CompanyProfile {
         return CompanyProfile(
             contactName = sharedPrefs.getString("contactName", "") ?: "",

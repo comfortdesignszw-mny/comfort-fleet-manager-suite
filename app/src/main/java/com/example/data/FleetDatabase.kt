@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Vehicle::class, TripLog::class, TelemetryHistory::class, ServiceRecord::class], version = 4, exportSchema = false)
+@Database(entities = [Vehicle::class, TripLog::class, TelemetryHistory::class, ServiceRecord::class], version = 5, exportSchema = false)
 abstract class FleetDatabase : RoomDatabase() {
     abstract fun fleetDao(): FleetDao
 

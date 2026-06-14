@@ -28,7 +28,7 @@ import com.example.ui.components.TelemetryTrendChart
 @Composable
 fun TelematicsScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
     val vehicles by viewModel.vehicles.collectAsStateWithLifecycle()
-    var selectedVehicleId by remember { mutableStateOf<Int?>(null) }
+    var selectedVehicleId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {

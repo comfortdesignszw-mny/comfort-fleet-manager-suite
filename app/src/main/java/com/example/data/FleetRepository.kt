@@ -30,11 +30,11 @@ class FleetRepository(private val fleetDao: FleetDao) {
         fleetDao.deleteTripLog(tripLog)
     }
     
-    suspend fun getVehicleById(id: Int): Vehicle? {
+    suspend fun getVehicleById(id: String): Vehicle? {
         return fleetDao.getVehicleById(id)
     }
 
-    fun getTelemetryHistory(vehicleId: Int): Flow<List<TelemetryHistory>> {
+    fun getTelemetryHistory(vehicleId: String): Flow<List<TelemetryHistory>> {
         return fleetDao.getTelemetryHistory(vehicleId)
     }
 
@@ -42,7 +42,7 @@ class FleetRepository(private val fleetDao: FleetDao) {
         fleetDao.insertTelemetryHistory(history)
     }
 
-    fun getServiceRecordsForVehicle(vehicleId: Int): Flow<List<ServiceRecord>> {
+    fun getServiceRecordsForVehicle(vehicleId: String): Flow<List<ServiceRecord>> {
         return fleetDao.getServiceRecordsForVehicle(vehicleId)
     }
 

@@ -35,6 +35,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object TripLogs : Screen("triplogs", "Trip Logs", Icons.Filled.MenuBook)
     object Telematics : Screen("telematics", "Telematics", Icons.Filled.Map)
     object Settings : Screen("settings", "Settings", Icons.Filled.Settings)
+    object SyncCenter : Screen("sync_center", "Sync Center", Icons.Filled.Settings)
 }
 
 val items = listOf(
@@ -132,7 +133,14 @@ fun MainAppScreen(viewModel: FleetViewModel = viewModel()) {
                 TelematicsScreen(viewModel, onBack = defaultBackAction) 
             }
             composable(Screen.Settings.route) { 
-                SettingsScreen(viewModel, onBack = defaultBackAction) 
+                SettingsScreen(
+                    viewModel, 
+                    onBack = defaultBackAction, 
+                    onNavigateToSync = { navController.navigate(Screen.SyncCenter.route) }
+                ) 
+            }
+            composable(Screen.SyncCenter.route) {
+                SyncCenterScreen(viewModel, onBack = { navController.popBackStack() })
             }
         }
     }

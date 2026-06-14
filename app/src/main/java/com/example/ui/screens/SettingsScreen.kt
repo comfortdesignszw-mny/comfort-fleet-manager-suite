@@ -28,7 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
+fun SettingsScreen(viewModel: FleetViewModel, onBack: () -> Unit, onNavigateToSync: () -> Unit) {
     val currentProfile by viewModel.companyProfile.collectAsStateWithLifecycle()
     
     var contactName by remember(currentProfile) { mutableStateOf(currentProfile.contactName) }
@@ -88,6 +88,13 @@ fun SettingsScreen(viewModel: FleetViewModel, onBack: () -> Unit) {
             
             Text("Customize Profiles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
             Text("These profiles automatically brand all generated PDF and CSV file exports.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(onClick = onNavigateToSync, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Filled.Save, contentDescription = null) // We can use another icon like Sync
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Open Data Sync Center")
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("Personal Profile", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)

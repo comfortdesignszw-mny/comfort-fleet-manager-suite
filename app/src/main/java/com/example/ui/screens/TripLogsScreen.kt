@@ -415,10 +415,10 @@ fun DetailRowItem(label: String, value: String, highlight: Boolean = false) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ManualTripLogDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onLog: (Int, String, String, String, Int, Int, String, String) -> Unit) {
+fun ManualTripLogDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onLog: (String, String, String, String, Int, Int, String, String) -> Unit) {
     val vehicles by viewModel.vehicles.collectAsStateWithLifecycle()
     
-    var selectedVehicleId by remember { mutableStateOf(vehicles.firstOrNull()?.id ?: 0) }
+    var selectedVehicleId by remember { mutableStateOf(vehicles.firstOrNull()?.id ?: "") }
     var driver by remember { mutableStateOf("") }
     var dest by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
@@ -535,7 +535,7 @@ fun ManualTripLogDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onLog:
                 onClick = { 
                     val miOut = mileageOut.toIntOrNull() ?: 0
                     val miIn = mileageIn.toIntOrNull() ?: 0
-                    if (driver.isNotBlank() && dest.isNotBlank() && selectedVehicleId != 0 && mileageOut.isNotBlank() && mileageIn.isNotBlank()) {
+                    if (driver.isNotBlank() && dest.isNotBlank() && selectedVehicleId.isNotBlank() && mileageOut.isNotBlank() && mileageIn.isNotBlank()) {
                         onLog(selectedVehicleId, driver, dest, reason, miOut, miIn, fuelOut, fuelIn)
                     }
                 },
@@ -550,11 +550,11 @@ fun ManualTripLogDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onLog:
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DispatchDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onDispatch: (Int, String, String, String, Int, String) -> Unit) {
+fun DispatchDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onDispatch: (String, String, String, String, Int, String) -> Unit) {
     val vehicles by viewModel.vehicles.collectAsStateWithLifecycle()
     val availableVehicles = vehicles.filter { it.status == "Parked" }
     
-    var selectedVehicleId by remember { mutableStateOf(availableVehicles.firstOrNull()?.id ?: 0) }
+    var selectedVehicleId by remember { mutableStateOf(availableVehicles.firstOrNull()?.id ?: "") }
     var driver by remember { mutableStateOf("") }
     var dest by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
@@ -667,7 +667,7 @@ fun DispatchDialog(viewModel: FleetViewModel, onDismiss: () -> Unit, onDispatch:
             Button(
                 onClick = { 
                     val mi = mileage.toIntOrNull() ?: 0
-                    if (driver.isNotBlank() && dest.isNotBlank() && selectedVehicleId != 0) {
+                    if (driver.isNotBlank() && dest.isNotBlank() && selectedVehicleId.isNotBlank()) {
                         onDispatch(selectedVehicleId, driver, dest, reason, mi, fuel)
                     }
                 },

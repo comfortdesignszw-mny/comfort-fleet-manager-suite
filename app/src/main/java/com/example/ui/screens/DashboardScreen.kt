@@ -247,7 +247,7 @@ fun DashboardScreen(viewModel: FleetViewModel) {
 }
 
 @Composable
-fun DonutChart(distances: Map<Int, Float>, vehicles: List<com.example.data.Vehicle>) {
+fun DonutChart(distances: Map<String, Float>, vehicles: List<com.example.data.Vehicle>) {
     val total = distances.values.sum()
     val colors = listOf(
         MaterialTheme.colorScheme.primary,
@@ -305,7 +305,7 @@ fun DonutChart(distances: Map<Int, Float>, vehicles: List<com.example.data.Vehic
 }
 
 @Composable
-fun DistanceBarChart(distancePerVehicle: Map<Int, Int>, vehicles: List<com.example.data.Vehicle>) {
+fun DistanceBarChart(distancePerVehicle: Map<String, Int>, vehicles: List<com.example.data.Vehicle>) {
     val maxDistance = distancePerVehicle.values.maxOrNull()?.toFloat() ?: 1f
     
     val primaryColor = MaterialTheme.colorScheme.primary

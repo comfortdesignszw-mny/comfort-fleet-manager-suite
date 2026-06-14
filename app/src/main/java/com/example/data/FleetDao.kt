@@ -14,7 +14,7 @@ interface FleetDao {
     fun getAllVehicles(): Flow<List<Vehicle>>
 
     @Query("SELECT * FROM vehicles WHERE id = :id LIMIT 1")
-    suspend fun getVehicleById(id: Int): Vehicle?
+    suspend fun getVehicleById(id: String): Vehicle?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVehicle(vehicle: Vehicle)
@@ -38,13 +38,13 @@ interface FleetDao {
     suspend fun deleteTripLog(tripLog: TripLog)
 
     @Query("SELECT * FROM telemetry_history WHERE vehicleId = :vehicleId ORDER BY timestamp DESC LIMIT 10")
-    fun getTelemetryHistory(vehicleId: Int): Flow<List<TelemetryHistory>>
+    fun getTelemetryHistory(vehicleId: String): Flow<List<TelemetryHistory>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTelemetryHistory(history: TelemetryHistory)
 
     @Query("SELECT * FROM service_records WHERE vehicleId = :vehicleId ORDER BY date DESC")
-    fun getServiceRecordsForVehicle(vehicleId: Int): Flow<List<ServiceRecord>>
+    fun getServiceRecordsForVehicle(vehicleId: String): Flow<List<ServiceRecord>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertServiceRecord(record: ServiceRecord)
